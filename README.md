@@ -11,7 +11,7 @@ MSc Data Science coursework (University of Sheffield), Grade: 82 (Outstanding). 
 | Linear Regression | 0.745 | 0.725 | $41,188.57 | 0.832 | **0.763** | **$30,041.81** | $20,991.02 |
 | Simple Regression Tree (tuned, min node size = 10) | 0.763 | 0.745 | $39,699.06 | 0.821 | 0.747 | $31,028.28 | $22,100.76 |
 
-**Linear Regression wins on the held-out test set** (Adjusted R² 0.763 vs. 0.747, RMSE $30,042 vs. $31,028, about $986 more accurate on average), consistent with the write-up's stated conclusion that the largely linear relationships between structural features and sale price favour a parametric model. Note the reversal: **the Tree actually has the better cross-validated score** (CV Adj. R² 0.745 vs. 0.725), it just doesn't carry that advantage through to the test set, a similar "the metric that looks better depends on which one you check" pattern as the other repos in this portfolio.
+**Linear Regression wins on the held-out test set** (Adjusted R² 0.763 vs. 0.747, RMSE $30,042 vs. $31,028, about $986 more accurate on average), consistent with the write-up's stated conclusion that the largely linear relationships between structural features and sale price favour a parametric model. Note the reversal: **the Tree actually has the better cross-validated score** (CV Adj. R² 0.745 vs. 0.725), it just doesn't carry that advantage through to the test set.
 
 Sale prices range from $34,900 to $755,000 (mean $180,984, SD $80,098). A test RMSE of ~$30,000 is roughly **16.6% of the mean sale price**, workable for a general valuation tool but not precise enough for mortgage underwriting.
 
