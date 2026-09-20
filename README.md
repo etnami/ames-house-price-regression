@@ -9,9 +9,9 @@ MSc Data Science coursework (University of Sheffield), Grade: 82 (Outstanding). 
 | Model | CV R² | CV Adj. R² | CV RMSE | Test R² | Test Adj. R² | Test RMSE | Test MAE |
 |---|---|---|---|---|---|---|---|
 | Linear Regression | 0.745 | 0.725 | $41,188.57 | 0.832 | **0.763** | **$30,041.81** | $20,991.02 |
-| Simple Regression Tree (tuned, min node size = 10) | 0.763 | 0.745 | $39,699.06 | 0.821 | 0.747 | $31,028.28 | $22,100.76 |
+| Simple Regression Tree (tuned, min node size = 10) | 0.763 | 0.745 | $39,696.55 | 0.821 | 0.747 | $31,028.28 | $22,100.76 |
 
-**Linear Regression wins on the held-out test set** (Adjusted R² 0.763 vs. 0.747, RMSE $30,042 vs. $31,028, about $986 more accurate on average), consistent with the write-up's stated conclusion that the largely linear relationships between structural features and sale price favour a parametric model. Note the reversal: **the Tree actually has the better cross-validated score** (CV Adj. R² 0.745 vs. 0.725), it just doesn't carry that advantage through to the test set.
+**Linear Regression wins on the held-out test set** Linear Regression scores slightly better on the held-out test set (Adjusted R² 0.763 vs. 0.747, RMSE $30,042 vs. $31,028, about $986 lower on average), while the Tree has the better cross-validated score (CV Adj. R² 0.745 vs. 0.725). The gap is narrow and comes from a single 260-property test set, so I read the two models as comparable, with the linear model favoured because the relationships between structural features and price are largely linear.
 
 Sale prices range from $34,900 to $755,000 (mean $180,984, SD $80,098). A test RMSE of ~$30,000 is roughly **16.6% of the mean sale price**, workable for a general valuation tool but not precise enough for mortgage underwriting.
 
@@ -25,9 +25,9 @@ Sale prices range from $34,900 to $755,000 (mean $180,984, SD $80,098). A test R
 | 4 | KitchenAbvGr | -$66,219 |
 | 5 | BedroomAbvGr | -$64,547 |
 
-**Systematic bias:** both models systematically underpredict (negative mean signed difference), but the Tree is worse: -$2,881.34 vs. -$2,387.33 for Linear Regression. This matches the Tree's structural limitation, predictions are capped at the mean of the highest leaf node, so it can't extrapolate to the most expensive properties the way OLS can.
+**Bias:** both models have a negative mean signed difference on the test set (Tree -$2,881.34, Linear Regression -$2,387.33). My write-up treats the Tree's underprediction as systematic: its predictions are capped at the mean of its highest leaf, which shows as banding at the top of the predicted-vs-actual plot, whereas OLS can extrapolate beyond the training range.
 
-**Tuning the tree mattered:** minimum node size was tuned via cross-validation across three candidates:
+**Tuning gave a small improvement:** minimum node size was tuned via 5-fold cross-validation on the training set across three candidates:
 
 | Min node size | CV Adj. R² | CV RMSE | CV MAE |
 |---|---|---|---|
@@ -35,7 +35,7 @@ Sale prices range from $34,900 to $755,000 (mean $180,984, SD $80,098). A test R
 | **10 (chosen)** | **0.745** | **$39,696.55** | **$25,009.50** |
 | 20 | 0.721 | $41,487.85 | $26,061.46 |
 
-Node size 10 improved on the default on every metric; node size 20 made things worse across the board.
+Node size 10 improved on the default on every metric (CV Adj. R² 0.745 vs. 0.740); node size 20 made things worse.
 
 ## Workflow structure
 
@@ -90,16 +90,17 @@ flowchart TD
 
 ## Methods & tools
 
-- **Platform:** KNIME Analytics Platform (workflow version 5.1.0)
-- **Preprocessing:** mean imputation for `LotFrontage` (17.7% missing, classified as MAR), one-to-many encoding for 11 categorical columns, correlation-based feature filtering (threshold |r| > 0.8, removed 9 redundant features), min-max normalization fit on training data only and applied to test data via `Normalizer Apply` (prevents data leakage)
-- **Models:** Linear Regression (OLS, no regularization, 76 predictors after encoding), Simple Regression Tree (tuned minimum node size)
-- **Validation:** 80/20 train/test split (seed 42) plus 5-fold cross-validation (`X-Partitioner`/`X-Aggregator`), run separately per model
-- **Evaluation:** R², Adjusted R² (penalizes the 76-predictor count), RMSE, MAE, mean signed difference (bias direction)
+- **Platform:** KNIME Analytics Platform 5.3.3
+- **Split:** 80/20 random train/test (seed 42): 1,040 training and 260 test properties
+- **Preprocessing (fitted on training data only, then applied to the test set):** mean imputation for `LotFrontage` (17.7% missing) and mode imputation for missing text columns; dummy encoding of 11 categorical columns (85 features after encoding); `Id` removed; correlation filter (|r| > 0.8) removing 9 redundant features (3 numeric, 6 dummy), leaving 76 predictors; min-max normalisation for the Linear Regression branch only (trees are scale-invariant)
+- **Models:** Linear Regression (OLS, no regularisation, 76 predictors), Simple Regression Tree (minimum node size tuned by cross-validation)
+- **Validation:** 5-fold cross-validation on the training set (X-Partitioner/X-Aggregator), run separately per model, plus the held-out test set
+- **Evaluation:** R², Adjusted R² (penalises the 76-predictor count), RMSE, MAE, mean signed difference (bias direction)
 
 ## Repo structure
 
 ```
-ames-house-price-prediction/
+ames-house-price-regression/
 ├── README.md                          ← you are here
 └── ames_house_price_workflow.knwf     ← full KNIME workflow, including training data and saved results
 ```
@@ -112,18 +113,21 @@ ames-house-price-prediction/
 
 ## Data
 
-The Ames, Iowa housing dataset (1,300 properties, 31 features) is bundled inside the `.knwf` file itself, since KNIME workflow exports include their data by default. This is a well-known public dataset; no separate licensing note applies.
+The workflow bundles the 1,300-property, 31-variable version of the Ames Housing dataset (De Cock, 2011) used in the coursework, so it reruns without a separate data file.
 
 ## Limitations
 
-- Adjusted R² penalizes the model for its 76 predictors (after categorical encoding), so it's a more honest comparison across the two models than raw R², which is why the headline numbers above lead with Adjusted R² rather than R².
-- The Tree's CV RMSE has a small, trivial discrepancy between the workflow's saved output ($39,699.06) and the write-up's reported table ($39,696.55), about a $2.51 difference (0.006%). Noted for transparency; it doesn't change any conclusion.
-- Both models systematically underpredict sale price on average; this is described in the write-up as a substantive finding about model bias, not something to be corrected by retuning.
+- Adjusted R² penalises the model for its 76 predictors, so it is a fairer comparison across the two models than raw R²; that is why the headline numbers lead with it.
+- The Tree's CV RMSE differs by $2.51 (0.006%) between the workflow's saved output ($39,699.06) and my reported figure ($39,696.55); this does not affect any conclusion.
+- Both models have a negative mean signed difference; the Tree's underprediction is the more systematic one because its predictions are capped at its highest leaf mean.
+- Test-set results come from a single 20% holdout (260 properties) and the gap between the models is small, so they should be read as comparable. Linear Regression's test Adjusted R² (0.763) is higher than its cross-validated one (0.725), which reflects the variability of a single split.
+- Standard errors could not be computed for most Linear Regression coefficients because of residual multicollinearity among the encoded dummy variables (the correlation filter removes pairwise but not joint collinearity), so the coefficients are useful for ranking predictors, not for inference. The large negative `KitchenAbvGr` and `BedroomAbvGr` coefficients are counterintuitive and likely reflect correlated predictors, since `GrLivArea` already captures size.
+- Tree tuning covered minimum node size only (5, 10, 20); depth limits and pruning were not explored. `SalePrice` was not log-transformed, to keep RMSE and MAE in dollars.
 
 ## Verification note
 
-Every number in this README was extracted directly from the workflow's own saved output tables (KNIME's Numeric Scorer nodes store real computed statistics, not just configuration), not taken from the write-up's prose, then cross-checked against the write-up's Table 8. 15 of 16 metrics matched exactly.
+Every figure in the results tables was extracted from the workflow's own saved output tables (KNIME's Numeric Scorer nodes store the computed statistics) and checked against my write-up (Tables 8, 9 and 10). All but one matched exactly; the exception is the $2.51 difference described under Limitations.
 
-One real, substantive mismatch turned up in that process: the write-up states the tuned Regression Tree uses **minimum node size = 10** (and Table 7 shows this was the winning value from a three-way tuning comparison), and the actual saved *results* stored in the workflow's Numeric Scorer nodes matched the node-size-10 numbers from that table. But the Simple Regression Tree Learner node, as configured in the workflow file at the time it was supplied, had **minimum node size set to 20**, a value Table 7 shows performs worse on every metric (CV Adjusted R² 0.721 vs. 0.745, CV RMSE $41,488 vs. $39,697). In other words: the workflow's stored results reflect a node-size-10 run, but its current configuration was set to 20, most likely because the parameter was changed after the last full execution and the file was saved without re-running. Left as-is, reopening and re-executing the file would have reproduced worse numbers than the ones reported.
+One real mismatch turned up: my write-up (Table 8) shows minimum node size = 10 was the best of three tuning candidates, and the results saved in the workflow matched that run. But the Simple Regression Tree Learner node in the submitted file was set to minimum node size = 20, which Table 8 shows performs worse (CV Adj. R² 0.721 vs. 0.745). The setting was most likely changed after the last full run and the file saved without re-running, so re-executing it would have reproduced worse numbers than reported.
 
-Per the decision made when rebuilding this repo, the shipped workflow's node setting has been corrected back to minimum node size = 10, so the file's configuration now actually matches its own saved results and the write-up. This is the one intentional edit made to the original submitted workflow in this whole portfolio; everywhere else, original bugs and mismatches (like the RF1/RF2 mislabeling in the song-popularity repo) were left as found and simply documented, since the person doing this portfolio judged this one worth fixing rather than only flagging, since an unfixed reproducibility trap in the one file a visitor would actually try to open and run seemed worse than the alternative.
+I corrected that one setting back to 10 so the file matches its saved results and my write-up. It is the only change I made to the submitted workflow.
