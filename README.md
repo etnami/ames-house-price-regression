@@ -99,7 +99,7 @@ flowchart TD
 ## Repo structure
 
 ```
-04-ames-house-price-prediction/
+ames-house-price-prediction/
 ├── README.md                          ← you are here
 └── ames_house_price_workflow.knwf     ← full KNIME workflow, including training data and saved results
 ```
