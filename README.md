@@ -2,7 +2,7 @@
 
 MSc Data Science coursework (University of Sheffield), Grade: 82 (Outstanding). Predicts residential sale prices for 1,300 Ames, Iowa properties from 31 structural, spatial and amenity features, comparing a Linear Regression model against a tuned Simple Regression Tree, built entirely as a visual KNIME workflow (80/20 train/test split, 5-fold cross-validation, correlation-based feature selection).
 
-> **Reproducibility note:** the workflow (`ames_house_price_workflow.knwf`) is a self-contained KNIME export, including the training data, so it opens and reruns directly in KNIME Analytics Platform with no missing files. The numbers below were extracted directly from the workflow's own saved output tables (KNIME stores real computed results inside the file, not just settings), then cross-checked against the write-up, not the other way around. One real mismatch turned up in that process; see Verification note.
+> **Reproducibility note:** the workflow (`ames_house_price_workflow.knwf`) is a self-contained KNIME export, including the training data, so it opens and reruns directly in KNIME Analytics Platform with no missing files. The numbers below were extracted directly from the workflow's own saved output tables (KNIME stores real computed results inside the file, not just settings), then cross-checked against my write-up, not the other way around. One real mismatch turned up in that process; see Verification note.
 
 ## Key results
 
